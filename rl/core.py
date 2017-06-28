@@ -43,7 +43,7 @@ class Agent(object):
 
     def fit(self, env, nb_steps, action_repetition=1, callbacks=None, verbose=1,
             visualize=False, nb_max_start_steps=0, start_step_policy=None, log_interval=10000,
-            nb_max_episode_steps=None):
+            nb_max_episode_steps=None, until_score=False,last_episodes=500, score_to_reach=0.5):
         """Trains the agent on the given environment.
 
         # Arguments
@@ -68,6 +68,10 @@ class Agent(object):
             nb_max_episode_steps (integer): Number of steps per episode that the agent performs before
                 automatically resetting the environment. Set to `None` if each episode should run
                 (potentially indefinitely) until the environment signals a terminal state.
+            until_score (boolean): If True, the training is done until a given score is reached on 
+                average during the last episodes.
+            last_episodes (int): Number of episodes to consider to average the score.
+            score_to_reach (float): Score to reach on average to end fitting.
 
         # Returns
             A `keras.callbacks.History` instance that recorded the entire training process.
@@ -111,8 +115,11 @@ class Agent(object):
         episode_reward = None
         episode_step = None
         did_abort = False
+        score_reached = False
+        if until_score:
+            last_episodes_scores = -(np.abs(score_to_reach) + 1)*np.ones(last_episodes)
         try:
-            while self.step < nb_steps:
+            while self.step < nb_steps and score_reached == False:
                 if observation is None:  # start of a new episode
                     callbacks.on_episode_begin(episode)
                     episode_step = 0
@@ -213,7 +220,9 @@ class Agent(object):
                         'nb_steps': self.step,
                     }
                     callbacks.on_episode_end(episode, episode_logs)
-
+                    last_episodes_scores[episode % last_episodes] = episode_reward
+                    if np.mean(last_episodes_scores) >= score_to_reach:
+                        score_reached = True
                     episode += 1
                     observation = None
                     episode_step = None
@@ -227,6 +236,8 @@ class Agent(object):
         self._on_train_end()
 
         return history
+    
+    
 
     def test(self, env, nb_episodes=1, action_repetition=1, callbacks=None, visualize=True,
              nb_max_episode_steps=None, nb_max_start_steps=0, start_step_policy=None, verbose=1):
