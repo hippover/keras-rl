@@ -22,9 +22,9 @@ from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.random import OrnsteinUhlenbeckProcess
 
-from Env2D import *
-from Screen2D_2players import *
-from ScreenPong import *
+import envs
+'''from Screen2D_2players import *
+from ScreenPong import *'''
 
 def plotStrategy(env):
 
@@ -211,7 +211,7 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
     agent1.compile(Adam(lr=L_R, clipnorm=1.), metrics=['mae'])
     agent2.compile(Adam(lr=L_R, clipnorm=1.), metrics=['mae'])
 
-    player1 = PongPlayer(agent2, myopie=myopie[0], opp_aware=(opp_aware[0] == 1))
+    player1 = PongPlayer(agent1, myopie=myopie[0], opp_aware=(opp_aware[0] == 1))
     player2 = PongPlayer(agent2, myopie=myopie[1], opp_aware=(opp_aware[1] == 1))
 
     # Grid -4
@@ -244,28 +244,25 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
 
     else:
 
+
         for i in range(n_alternances):
 
             print "Alternance n {} \n".format(i)
             def learning_rate_schedule(epoch):
-                n = n_steps*i + epoch
-                return L_R/(np.max([1,n/(4.*n_steps)]))
+                return L_R
 
             if ENV_NAME == 'Env2D':
                 env = Game2D(agent2,wall_reward=wall_reward, touch_reward=touch_reward)
             elif ENV_NAME == 'EnvPong':
                 env = Pong(player1,player2,wall_reward=wall_reward, touch_reward=touch_reward,ball_speed=ball_speed)
             agent1.fit(env, nb_steps=n_steps, visualize=False, verbose=1, nb_max_episode_steps=None,callbacks=[FileLogger("{}/player1_{}.h5f".format(directory_log,i)), keras.callbacks.LearningRateScheduler(learning_rate_schedule)])
-            if ENV_NAME == 'Env2D':
-                env = Game2D(agent1,wall_reward=wall_reward, touch_reward=touch_reward)
-            elif ENV_NAME == 'EnvPong':
-                env = Pong(player2,player1,wall_reward=wall_reward, touch_reward=touch_reward,ball_speed=ball_speed)
-            agent2.fit(env, nb_steps=n_steps, visualize=False, verbose=1, nb_max_episode_steps=None,callbacks=[FileLogger("{}/player2_{}.h5f".format(directory_log,i)), keras.callbacks.LearningRateScheduler(learning_rate_schedule)])
-            agent2.test(env, nb_episodes=15, visualize=False, nb_max_episode_steps=1000)
+            agent1.test(env, nb_episodes=100, visualize=False, nb_max_episode_steps=500, verbose=1)
+            agent1.save_weights("{}/player1_{}".format(directory_weights,i), overwrite=True)
+            agent1.memory = SequentialMemory(limit=500000, window_length=1)
+            wall_reward = wall_reward * 0.8
+            touch_reward = touch_reward * 0.8
+            agent2.load_weights("{}/player1_{}".format(directory_weights,i))
 
-            if i % 5 == 0:
-                agent1.save_weights("{}/player1_{}".format(directory_weights,i), overwrite=True)
-                agent2.save_weights("{}/player2_{}".format(directory_weights,i), overwrite=True)
 
         print "Fin de {}".format(conf_name)
         env = Pong(player1,player2,wall_reward=wall_reward,touch_reward=touch_reward,ball_speed=ball_speed)
