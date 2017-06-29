@@ -2,6 +2,8 @@
 
 import numpy as np
 import sys
+sys.path.insert(0, "/Users/Hippolyte/Desktop/Harvard/git_repo/keras-rl")
+# don't know how to keep the same folder architecture without having to do this...
 import json
 #import matplotlib.pyplot as plt
 import argparse
@@ -15,6 +17,7 @@ from keras.layers import Dense, Activation, Flatten, Input, merge
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 from keras.callbacks import ReduceLROnPlateau
+from keras.initializers import RandomUniform
 
 from rl.callbacks import FileLogger, Callback
 from rl.core import Processor
@@ -22,7 +25,7 @@ from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.random import OrnsteinUhlenbeckProcess
 
-import envs
+from envs import *
 '''from Screen2D_2players import *
 from ScreenPong import *'''
 
@@ -141,11 +144,11 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
     actor.add(Flatten(input_shape=(1,) + env.observation_space_1.shape))
     #actor.add(keras.layers.normalization.BatchNormalization())
     for size in layers1:
-        actor.add(Dense(size, kernel_initializer=keras.initializers.RandomUniform(minval=-0.005, maxval=0.005, seed=None)))
+        actor.add(Dense(size, kernel_initializer=RandomUniform(minval=-0.005, maxval=0.005, seed=None)))
         #actor.add(keras.layers.core.Dropout(0.2))
         actor.add(LeakyReLU(leaky_alpha))
     #actor.add(keras.layers.normalization.BatchNormalization())
-    actor.add(Dense(nb_actions, kernel_initializer=keras.initializers.RandomUniform(minval=-0.005, maxval=0.005, seed=None),bias_regularizer=regularizers.l2(0.01)))
+    actor.add(Dense(nb_actions, kernel_initializer=RandomUniform(minval=-0.005, maxval=0.005, seed=None),bias_regularizer=regularizers.l2(0.01)))
     #actor.add(keras.layers.core.Dropout(0.2))
     actor.add(Activation('linear'))
     print(actor.summary())
@@ -169,10 +172,10 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
     actor2.add(Flatten(input_shape=(1,) + env.observation_space_2.shape))
     #actor2.add(keras.layers.normalization.BatchNormalization())
     for size in layers2:
-        actor2.add(Dense(size, kernel_initializer=keras.initializers.RandomUniform(minval=-0.005, maxval=0.005, seed=None)))
+        actor2.add(Dense(size, kernel_initializer=RandomUniform(minval=-0.005, maxval=0.005, seed=None)))
         #actor2.add(keras.layers.core.Dropout(0.2))
         actor2.add(LeakyReLU(alpha=leaky_alpha))
-    actor2.add(Dense(nb_actions, kernel_initializer=keras.initializers.RandomUniform(minval=-0.005, maxval=0.005, seed=None),bias_regularizer=regularizers.l2(0.01)))
+    actor2.add(Dense(nb_actions, kernel_initializer=RandomUniform(minval=-0.005, maxval=0.005, seed=None),bias_regularizer=regularizers.l2(0.01)))
     #actor2.add(keras.layers.core.Dropout(0.2))
     actor2.add(Activation('linear'))
     print(actor2.summary())

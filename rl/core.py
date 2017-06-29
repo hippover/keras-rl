@@ -68,7 +68,7 @@ class Agent(object):
             nb_max_episode_steps (integer): Number of steps per episode that the agent performs before
                 automatically resetting the environment. Set to `None` if each episode should run
                 (potentially indefinitely) until the environment signals a terminal state.
-            until_score (boolean): If True, the training is done until a given score is reached on 
+            until_score (boolean): If True, the training is done until a given score is reached on
                 average during the last episodes.
             last_episodes (int): Number of episodes to consider to average the score.
             score_to_reach (float): Score to reach on average to end fitting.
@@ -220,9 +220,10 @@ class Agent(object):
                         'nb_steps': self.step,
                     }
                     callbacks.on_episode_end(episode, episode_logs)
-                    last_episodes_scores[episode % last_episodes] = episode_reward
-                    if np.mean(last_episodes_scores) >= score_to_reach:
-                        score_reached = True
+                    if until_score == True:
+                        last_episodes_scores[episode % last_episodes] = episode_reward
+                        if np.mean(last_episodes_scores) >= score_to_reach:
+                            score_reached = True
                     episode += 1
                     observation = None
                     episode_step = None
@@ -236,8 +237,8 @@ class Agent(object):
         self._on_train_end()
 
         return history
-    
-    
+
+
 
     def test(self, env, nb_episodes=1, action_repetition=1, callbacks=None, visualize=True,
              nb_max_episode_steps=None, nb_max_start_steps=0, start_step_policy=None, verbose=1):
@@ -428,7 +429,7 @@ class Agent(object):
     @property
     def layers(self):
         """Returns all layers of the underlying model(s).
-        
+
         If the concrete implementation uses multiple internal models,
         this method returns them in a concatenated list.
         """
@@ -541,7 +542,7 @@ class MultiInputProcessor(Processor):
     """Converts observations from an environment with multiple observations for use in a neural network
     policy.
 
-    In some cases, you have environments that return multiple different observations per timestep 
+    In some cases, you have environments that return multiple different observations per timestep
     (in a robotics context, for example, a camera may be used to view the scene and a joint encoder may
     be used to report the angles for each joint). Usually, this can be handled by a policy that has
     multiple inputs, one for each modality. However, observations are returned by the environment
@@ -602,7 +603,7 @@ class Env(object):
     def reset(self):
         """
         Resets the state of the environment and returns an initial observation.
-        
+
         # Returns
             observation (object): The initial observation of the space. Initial reward is assumed to be 0.
         """
@@ -611,8 +612,8 @@ class Env(object):
     def render(self, mode='human', close=False):
         """Renders the environment.
         The set of supported modes varies per environment. (And some
-        environments do not support rendering at all.) 
-        
+        environments do not support rendering at all.)
+
         # Arguments
             mode (str): The mode to render with.
             close (bool): Close all open renderings.
@@ -628,7 +629,7 @@ class Env(object):
 
     def seed(self, seed=None):
         """Sets the seed for this env's random number generator(s).
-        
+
         # Returns
             Returns the list of seeds used in this env's random number generators
         """

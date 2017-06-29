@@ -116,6 +116,8 @@ class DDPGAgent(Agent):
         self.actor.compile(optimizer='sgd', loss='mse')
 
         # Compile the critic.
+        self.optimizer = critic_optimizer
+        # Required for callbacks such as LearningRateScheduler
         if self.target_model_update < 1.:
             # We use the `AdditionalUpdatesOptimizer` to efficiently soft-update the target model.
             critic_updates = get_soft_target_model_updates(self.target_critic, self.critic, self.target_model_update)
@@ -141,12 +143,12 @@ class DDPGAgent(Agent):
             grads = [K.mean(g, axis=0) for g in grads]
         else:
             raise RuntimeError('Unknown Keras backend "{}".'.format(K.backend()))
-        
+
         # We now have the gradients (`grads`) of the combined model wrt to the actor's weights and
         # the output (`output`). Compute the necessary updates using a clone of the actor's optimizer.
         clipnorm = getattr(actor_optimizer, 'clipnorm', 0.)
         clipvalue = getattr(actor_optimizer, 'clipvalue', 0.)
-        
+
         def get_gradients(loss, params):
             # We want to follow the gradient, but the optimizer goes in the opposite direction to
             # minimize loss. Hence the double inversion.
@@ -158,7 +160,7 @@ class DDPGAgent(Agent):
             if clipvalue > 0.:
                 modified_grads = [K.clip(g, -clipvalue, clipvalue) for g in modified_grads]
             return modified_grads
-        
+
         actor_optimizer.get_gradients = get_gradients
         updates = actor_optimizer.get_updates(self.actor.trainable_weights, self.actor.constraints, None)
         if self.target_model_update < 1.:
@@ -232,11 +234,11 @@ class DDPGAgent(Agent):
         action = self.select_action(state)  # TODO: move this into policy
         if self.processor is not None:
             action = self.processor.process_action(action)
-        
+
         # Book-keeping.
         self.recent_observation = observation
         self.recent_action = action
-        
+
         return action
 
     @property
@@ -261,13 +263,13 @@ class DDPGAgent(Agent):
             # We're done here. No need to update the experience memory since we only use the working
             # memory to obtain the state over the most recent observations.
             return metrics
-        
+
         # Train the network on a single stochastic batch.
         can_train_either = self.step > self.nb_steps_warmup_critic or self.step > self.nb_steps_warmup_actor
         if can_train_either and self.step % self.train_interval == 0:
             experiences = self.memory.sample(self.batch_size)
             assert len(experiences) == self.batch_size
-            
+
             # Start by extracting the necessary parameters (we use a vectorized implementation).
             state0_batch = []
             reward_batch = []
@@ -302,14 +304,14 @@ class DDPGAgent(Agent):
                 state1_batch_with_action.insert(self.critic_action_input_idx, target_actions)
                 target_q_values = self.target_critic.predict_on_batch(state1_batch_with_action).flatten()
                 assert target_q_values.shape == (self.batch_size,)
-                
+
                 # Compute r_t + gamma * max_a Q(s_t+1, a) and update the target ys accordingly,
                 # but only for the affected output units (as given by action_batch).
                 discounted_reward_batch = self.gamma * target_q_values
                 discounted_reward_batch *= terminal1_batch
                 assert discounted_reward_batch.shape == reward_batch.shape
                 targets = (reward_batch + discounted_reward_batch).reshape(self.batch_size, 1)
-                
+
                 # Perform a single batch update on the critic network.
                 if len(self.critic.inputs) >= 3:
                     state0_batch_with_action = state0_batch[:]
