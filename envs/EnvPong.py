@@ -25,8 +25,8 @@ class Pong():
         else:
             self.observation_space_2 = np.zeros(7)
         self.colTimes = np.zeros(4)
-        self.dt = 0.05
-        self.rate = 0.5
+        self.dt = 0.2
+        self.rate = self.dt*10
         self.r = 0.01 # Rayon de la balle
         self.alpha = 0.4
         self.wall_reward = wall_reward
@@ -56,29 +56,29 @@ class Pong():
         d1 = np.sqrt((self.p_left - self.p_ball[1])**2 + (self.p_ball[0] + 1)**2)
         d2 = np.sqrt((self.p_right - self.p_ball[1])**2 + (self.p_ball[0] -1)**2)
         if self.player_left.myopie < 0:
-            d1 = np.sqrt(5) - d1
+            d1 = max(np.sqrt(5) - d1,0.00001)
         if self.player_right.myopie < 0:
-            d2 = np.sqrt(5) - d2
+            d2 = max(np.sqrt(5) - d2,0.00001)
         if self.player_left.opp_aware:
             self.stateLeft = np.zeros(9)
             self.stateLeft[0] = self.p_left + np.random.normal(0.,np.abs(self.player_left.myopie))
             self.stateLeft[1] = self.p_right + np.random.normal(0.,np.abs(self.player_left.myopie)*2)
             self.stateLeft[2] = self.v_left + np.random.normal(0.,np.abs(self.player_left.myopie)*2)
             self.stateLeft[3] = self.v_right + np.random.normal(0.,np.abs(self.player_left.myopie)*2)
-            self.stateLeft[4] = self.p_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[5] = self.p_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[6] = self.v_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[7] = self.v_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[8] = self.s_ball + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
+            self.stateLeft[4] = self.p_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[5] = self.p_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[6] = self.v_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[7] = self.v_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[8] = self.s_ball + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
         else:
             self.stateLeft = np.zeros(7)
             self.stateLeft[0] = self.p_left + np.random.normal(0.,np.abs(self.player_left.myopie))
             self.stateLeft[1] = self.v_left + np.random.normal(0.,np.abs(self.player_left.myopie)*2)
-            self.stateLeft[2] = self.p_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[3] = self.p_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[4] = self.v_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[5] = self.v_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
-            self.stateLeft[6] = self.s_ball + np.random.normal(0.,np.abs(self.player_left.myopie)*d1)
+            self.stateLeft[2] = self.p_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[3] = self.p_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[4] = self.v_ball[0] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[5] = self.v_ball[1] + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
+            self.stateLeft[6] = self.s_ball + np.random.normal(0.,np.abs(self.player_left.myopie*d1))
 
         if self.player_right.opp_aware:
             self.stateRight = np.zeros(9)
@@ -86,20 +86,20 @@ class Pong():
             self.stateRight[1] = -self.p_left + np.random.normal(0.,np.abs(self.player_right.myopie)*2)
             self.stateRight[2] = -self.v_right + np.random.normal(0.,np.abs(self.player_right.myopie)*2)
             self.stateRight[3] = -self.v_left + np.random.normal(0.,np.abs(self.player_right.myopie)*2)
-            self.stateRight[4] = -self.p_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[5] = -self.p_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[6] = -self.v_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[7] = -self.v_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[8] = self.s_ball + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
+            self.stateRight[4] = -self.p_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[5] = -self.p_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[6] = -self.v_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[7] = -self.v_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[8] = self.s_ball + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
         else:
             self.stateRight = np.zeros(7)
             self.stateRight[0] = -self.p_right + np.random.normal(0.,np.abs(self.player_right.myopie))
             self.stateRight[1] = -self.v_right + np.random.normal(0.,np.abs(self.player_right.myopie)*2)
-            self.stateRight[2] = -self.p_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[3] = -self.p_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[4] = -self.v_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[5] = -self.v_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
-            self.stateRight[6] = self.s_ball + np.random.normal(0.,np.abs(self.player_right.myopie)*d2)
+            self.stateRight[2] = -self.p_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[3] = -self.p_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[4] = -self.v_ball[0] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[5] = -self.v_ball[1] + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
+            self.stateRight[6] = self.s_ball + np.random.normal(0.,np.abs(self.player_right.myopie*d2))
 
     def compute_coll(self):
         if self.v_ball[0] > 0:
@@ -156,7 +156,8 @@ class Pong():
                 self.time += delta
                 remaining -= delta
 
-                e_x = 1.0
+                e_x = 1.
+                e_x_walls = -0.8
 
                 if wall == 0:
                     if np.abs(self.p_left - self.p_ball[1]) < 0.1:
@@ -165,6 +166,7 @@ class Pong():
                         v_par = self.v_ball[1] - self.v_left
                         self.v_ball[1] = ((1-self.alpha)*v_par+self.alpha*(1+e_x )*self.r*self.s_ball)/(1+self.alpha) + self.v_left
                         self.s_ball = ((1+e_x )*v_par + (self.alpha - e_x )*self.r*self.s_ball)/(self.r*(1+self.alpha))
+                        self.v_ball *= 1.1
                         rewardLeft += self.touch_reward
                     else:
                         self.over = True
@@ -178,6 +180,8 @@ class Pong():
                         v_par = self.v_ball[1] - self.v_right
                         self.v_ball[1] = ((1-self.alpha)*v_par-self.alpha*(1+e_x )*self.r*self.s_ball)/(1+self.alpha) + self.v_right
                         self.s_ball = -((1+e_x )*v_par - (self.alpha - e_x )*self.r*self.s_ball)/(self.r*(1+self.alpha))
+                        self.v_ball *= 1.1
+
                     else:
                         #print "over because right missed it touch : {}".format(self.touch)
                         self.over = True
@@ -186,14 +190,14 @@ class Pong():
 
                 if wall == 2:
                     self.v_ball[1] = -self.v_ball[1]
-                    #v_par = self.v_ball[0]
-                    #self.v_ball[0] = ((1-self.alpha)*v_par+self.alpha*(1+e_x )*self.r*self.s_ball)/(1+self.alpha)
-                    #self.s_ball = ((1+e_x )*v_par + (self.alpha - e_x )*self.r*self.s_ball)/(self.r*(1+self.alpha))
+                    v_par = self.v_ball[0]
+                    self.v_ball[0] = ((1-self.alpha)*v_par+self.alpha*(1+e_x_walls )*self.r*self.s_ball)/(1+self.alpha)
+                    self.s_ball = ((1+e_x_walls )*v_par + (self.alpha - e_x_walls )*self.r*self.s_ball)/(self.r*(1+self.alpha))
                 elif wall == 3:
                     self.v_ball[1] = -self.v_ball[1]
-                    #v_par = self.v_ball[0]
-                    #self.v_ball[0] = ((1-self.alpha)*v_par-self.alpha*(1+e_x )*self.r*self.s_ball)/(1+self.alpha)
-                    #self.s_ball = -((1+e_x )*v_par - (self.alpha - e_x )*self.r*self.s_ball)/(self.r*(1+self.alpha))
+                    v_par = self.v_ball[0]
+                    self.v_ball[0] = ((1-self.alpha)*v_par-self.alpha*(1+e_x_walls )*self.r*self.s_ball)/(1+self.alpha)
+                    self.s_ball = -((1+e_x_walls )*v_par - (self.alpha - e_x_walls )*self.r*self.s_ball)/(self.r*(1+self.alpha))
 
                 self.compute_coll()
 

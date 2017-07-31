@@ -24,6 +24,7 @@ from rl.core import Processor
 from rl.agents import DDPGAgent
 from rl.memory import SequentialMemory
 from rl.random import OrnsteinUhlenbeckProcess
+from ScreenPong import playPong
 
 from envs import *
 '''from Screen2D_2players import *
@@ -201,14 +202,14 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
         memory2 = SequentialMemory(limit=50000, window_length=1)
     else:
         memory2 = memory1
-    random_process1 = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.15, mu=0., sigma=.3, sigma_min=0.,n_steps_annealing=4*n_steps) # Explores less at the end ?
-    random_process2 = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.15, mu=0., sigma=.3, sigma_min=0.,n_steps_annealing=4*n_steps)
+    random_process1 = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.1, mu=0., sigma=.15, sigma_min=0.,n_steps_annealing=n_steps/4) # Explores less at the end ?
+    random_process2 = OrnsteinUhlenbeckProcess(size=nb_actions, theta=.1, mu=0., sigma=.15, sigma_min=0.,n_steps_annealing=4*n_steps)
     agent1 = DDPGAgent(nb_actions=nb_actions, actor=actor, critic=critic, critic_action_input=action_input,
                       memory=memory1, nb_steps_warmup_critic=5000, nb_steps_warmup_actor=5000,
-                      random_process=random_process1, gamma=.99, target_model_update=1e-3, batch_size=200)
+                      random_process=random_process1, gamma=.99, target_model_update=1e-3, batch_size=100)
     agent2 = DDPGAgent(nb_actions=nb_actions, actor=actor2, critic=critic2, critic_action_input=action_input2,
                       memory=memory2, nb_steps_warmup_critic=5000, nb_steps_warmup_actor=5000,
-                      random_process=random_process2, gamma=.99, target_model_update=1e-3, batch_size=200)
+                      random_process=random_process2, gamma=.99, target_model_update=1e-3, batch_size=100)
 
     #agent.compile(Adam(lr=L_R, clipnorm=1., clipvalue=0.5), metrics=['mae'])
     agent1.compile(Adam(lr=L_R, clipnorm=1.), metrics=['mae'])
@@ -230,13 +231,16 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
         os.makedirs(directory_weights)
 
     if only_test:
-        if weights1_name =='':
+        '''if weights1_name =='':
             weights1_name = "{}/player1_final".format(directory_weights)
         if weights2_name == '':
             weights2_name = "{}/player2_final".format(directory_weights)
         #if os.path.isfile(weights1_name) and os.path.isfile(weights2_name):
         agent1.load_weights(weights1_name)
-        agent2.load_weights(weights2_name)
+        agent2.load_weights(weights2_name)'''
+
+        agent1.load_weights("{}/player1_{}".format(directory_weights,"final"))
+        agent2.load_weights("{}/player1_{}".format(directory_weights,"final"))
 
         env = makeEnv(player1,player2,ENV_NAME,ball_speed=ball_speed)
         for i in range(10):
@@ -246,7 +250,6 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
 
 
     else:
-
 
         for i in range(n_alternances):
 
@@ -258,14 +261,13 @@ def main(layers1=[200],layers2=[200], leaky_alpha=0.10,ENV_NAME='EnvPong',show=F
                 env = Game2D(agent2,wall_reward=wall_reward, touch_reward=touch_reward)
             elif ENV_NAME == 'EnvPong':
                 env = Pong(player1,player2,wall_reward=wall_reward, touch_reward=touch_reward,ball_speed=ball_speed)
-            agent1.fit(env, nb_steps=n_steps, visualize=False, verbose=1, nb_max_episode_steps=None,callbacks=[FileLogger("{}/player1_{}.h5f".format(directory_log,i)), keras.callbacks.LearningRateScheduler(learning_rate_schedule)])
+            agent1.fit(env, nb_steps=n_steps, visualize=False, verbose=1, until_score=True, score_to_reach=0.5, last_episodes=500,nb_max_episode_steps=None,callbacks=[FileLogger("{}/player1_{}.h5f".format(directory_log,i)), keras.callbacks.LearningRateScheduler(learning_rate_schedule)])
             agent1.test(env, nb_episodes=100, visualize=False, nb_max_episode_steps=500, verbose=1)
             agent1.save_weights("{}/player1_{}".format(directory_weights,i), overwrite=True)
             agent1.memory = SequentialMemory(limit=500000, window_length=1)
             wall_reward = wall_reward * 0.8
             touch_reward = touch_reward * 0.8
             agent2.load_weights("{}/player1_{}".format(directory_weights,i))
-
 
         print "Fin de {}".format(conf_name)
         env = Pong(player1,player2,wall_reward=wall_reward,touch_reward=touch_reward,ball_speed=ball_speed)
@@ -297,10 +299,10 @@ if __name__ == "__main__":
     parser.add_argument("--show", help="Play animations at the end.", action="store_true")
     parser.add_argument("--opp_aware", help="Are the players aware of their opponent's moves ? 1 if True, other int if False", default=[1,1], type=int, nargs=2)
     parser.add_argument("--myopie", help="Myopias of the two players (during the training)", type = float, default = [0.,0.], nargs=2)
-    parser.add_argument("--wall_reward", help="Reward when a player hits the wall (should be < 0).", default=-0.1, type=float)
-    parser.add_argument("--touch_reward", help="Reward when a player touches the ball (should be 1 > x >= 0).", default=0.3, type=float)
-    parser.add_argument("--n_alternances", help="Number of alternances between player 1 and 2 duting training", default=10, type=int)
-    parser.add_argument("--n_steps", help="Nombre de steps par alternance for each player.", default=80000, type=int)
+    parser.add_argument("--wall_reward", help="Reward when a player hits the wall (should be < 0).", default=-0.0, type=float)
+    parser.add_argument("--touch_reward", help="Reward when a player touches the ball (should be 1 > x >= 0).", default=0.0, type=float)
+    parser.add_argument("--n_alternances", help="Number of alternances between player 1 and 2 during training", default=10, type=int)
+    parser.add_argument("--n_steps", help="Nombre de steps par alternance for each player.", default=10000000, type=int)
     parser.add_argument("--only_test", help="If set, then the training part is skipped, the weights are loaded and only the testing is done", action="store_true")
     parser.add_argument("--ball_speed", type=float, help="Norm of tyhe ball's velocity", default = 1.0)
     parser.add_argument("--weights1_name", type=str, help="Path to the player 1's weights (for testing mode only, the sizes have to be entered correctly)", default='')

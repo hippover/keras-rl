@@ -89,6 +89,7 @@ class CallbackList(KerasCallbackList):
 
 class TestLogger(Callback):
     def on_train_begin(self, logs):
+        self.rewards = []
         print('Testing for {} episodes ...'.format(self.params['nb_episodes']))
 
     def on_episode_end(self, episode, logs):
@@ -98,7 +99,12 @@ class TestLogger(Callback):
             logs['episode_reward'],
             logs['nb_steps'],
         ]
+        self.rewards.append(logs['episode_reward'])
         print(template.format(*variables))
+
+    def on_train_end(self, logs):
+        print(np.array(self.rewards))
+        print("Average reward : {} +- {} ".format(np.mean(np.array(self.rewards)), np.std(np.array(self.rewards))))
 
 
 class TrainEpisodeLogger(Callback):
@@ -117,7 +123,7 @@ class TrainEpisodeLogger(Callback):
         self.train_start = timeit.default_timer()
         self.metrics_names = self.model.metrics_names
         print('Training for {} steps ...'.format(self.params['nb_steps']))
-        
+
     def on_train_end(self, logs):
         duration = timeit.default_timer() - self.train_start
         print('done, took {:.3f} seconds'.format(duration))
@@ -148,7 +154,7 @@ class TrainEpisodeLogger(Callback):
                 except Warning:
                     value = '--'
                     metrics_template += '{}: {}'
-                metrics_variables += [name, value]          
+                metrics_variables += [name, value]
         metrics_text = metrics_template.format(*metrics_variables)
 
         nb_step_digits = str(int(np.ceil(np.log10(self.params['nb_steps']))) + 1)
@@ -194,6 +200,7 @@ class TrainIntervalLogger(Callback):
     def __init__(self, interval=10000):
         self.interval = interval
         self.step = 0
+        self.best_avg_reward = -1000.
         self.reset()
 
     def reset(self):
@@ -224,7 +231,11 @@ class TrainIntervalLogger(Callback):
                     assert means.shape == (len(self.metrics_names),)
                     for name, mean in zip(self.metrics_names, means):
                         formatted_metrics += ' - {}: {:.3f}'.format(name, mean)
-                
+                        if name == 'episode_reward':
+                            if mean > self.best_avg_reward:
+                                self.best_avg_reward = mean
+                                print('Best Interval so far')
+
                 formatted_infos = ''
                 if len(self.infos) > 0:
                     infos = np.array(self.infos)
@@ -277,7 +288,7 @@ class FileLogger(Callback):
 
     def on_episode_end(self, episode, logs):
         duration = timeit.default_timer() - self.starts[episode]
-        
+
         metrics = self.metrics[episode]
         if np.isnan(metrics).all():
             mean_metrics = np.array([np.nan for _ in self.metrics_names])
@@ -327,8 +338,8 @@ class Visualizer(Callback):
     def on_action_end(self, action, logs):
         self.env.render(mode='human')
 
-
 class ModelIntervalCheckpoint(Callback):
+    #Computes average reward on an interval and saves the model if it is an improvement
     def __init__(self, filepath, interval, verbose=0):
         super(ModelIntervalCheckpoint, self).__init__()
         self.filepath = filepath
@@ -346,3 +357,31 @@ class ModelIntervalCheckpoint(Callback):
         if self.verbose > 0:
             print('Step {}: saving model to {}'.format(self.total_steps, filepath))
         self.model.save_weights(filepath, overwrite=True)
+
+
+class ModelPerformanceCheckpoint(Callback):
+    def __init__(self, filepath, interval, verbose=0):
+        super(ModelPerformanceCheckpoint, self).__init__()
+        self.filepath = filepath
+        self.interval = interval
+        self.verbose = verbose
+        self.total_steps = 0
+        self.total_episodes = 0
+        self.episode_rewards = []
+        self.best_avg_reward = -10000
+        self.last_save = 0
+
+    def on_step_end(self,step,logs={}):
+        self.total_steps += 1
+
+    def on_episode_end(self, episode, logs={}):
+        self.episode_rewards.append(logs['episode_reward'])
+        self.total_episodes += 1
+        if self.total_episodes > self.interval and self.total_episodes - self.last_save > self.interval*3:
+            mean = np.mean(self.episode_rewards[-self.interval:-1])
+            if mean > self.best_avg_reward + np.abs(self.best_avg_reward)*0.05:
+                self.best_avg_reward = mean
+                self.last_save = self.total_episodes
+                filepath = self.filepath.format(self.total_episodes,self.best_avg_reward)
+                print('Average reward on {} episodes : {} saving model to {}'.format(self.interval, self.best_avg_reward, filepath))
+                self.model.save_weights(filepath, overwrite=True)
