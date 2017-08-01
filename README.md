@@ -1,3 +1,5 @@
+Here is the python package I used (and modified) to train artificial intelligence to play Pong and to catch balls. The package is rather nicely made and what I did was mailny to add two environments (Pong and PongSolo, which is just the catching task) and to add the ddpg_2players.py file, which contains the best-working version of my efforts to train intelligences to play a 2-players version of the Pong game, without any hard-coded AI.
+
 # Deep Reinforcement Learning for Keras
 [![Build Status](https://api.travis-ci.org/matthiasplappert/keras-rl.svg?branch=master)](https://travis-ci.org/matthiasplappert/keras-rl)
 [![Documentation](https://readthedocs.org/projects/keras-rl/badge/)](http://keras-rl.readthedocs.io/)
