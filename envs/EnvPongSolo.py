@@ -11,6 +11,7 @@ class EnvPongSolo():
         self.alpha = alpha
         self.state = np.zeros(6)
         self.observation_space = self.state
+        self.action_space = np.zeros(1)
         self.sigma_v = sigma_v
         self.sigma_o = sigma_o
         self.reset()
@@ -27,7 +28,7 @@ class EnvPongSolo():
         self.w_ball = 0.
         self.over = False
         self.update_state()
-        return self.state
+        return np.copy(self.state)
 
     def compute_colls(self):
         if self.v_ball[1] > 0:
@@ -104,4 +105,4 @@ class EnvPongSolo():
         self.update_state()
         #print self.state
 
-        return self.state, float(reward), self.over, {}
+        return np.copy(self.state), float(reward), self.over, {}
